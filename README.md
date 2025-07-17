@@ -319,6 +319,50 @@ Contributions are welcome! If you'd like to contribute, please follow these gene
 
 If you plan to modify the C library code in `vendors/stretch/`, you will also need to recompile it for your platform and potentially update the CI workflows if changes are significant.
 
+## Development and Release Process
+
+AudioStretchy uses git-tag-based semantic versioning with automated CI/CD pipeline:
+
+### Quick Start for Development
+
+```bash
+# Set up development environment
+make dev
+
+# Run tests
+make test
+
+# Run linting and formatting
+make lint
+make format
+
+# Build package
+make build
+```
+
+### Release Process
+
+```bash
+# Create a new release (requires main branch)
+make release VERSION=1.2.3
+```
+
+This will:
+- Run all tests
+- Build the package
+- Create a git tag
+- Trigger automated CI/CD pipeline
+- Publish to PyPI automatically
+
+### CI/CD Pipeline
+
+- **Multi-platform testing**: Ubuntu, Windows, macOS
+- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+- **Automatic wheel building**: Binary wheels for all platforms
+- **Automated PyPI publishing**: On git tag creation
+
+See [SEMVER_GUIDE.md](SEMVER_GUIDE.md) for detailed release documentation.
+
 ## License
 
 *   The Python wrapper code for AudioStretchy (this project) is licensed under the **BSD-3-Clause License**. See [LICENSE.txt](./LICENSE.txt). Copyright (c) 2023-2024 Adam Twardoch.
