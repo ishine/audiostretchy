@@ -1,62 +1,117 @@
-1.  **Project Setup and Initial Cleanup:**
-    *   Create `PLAN.md` (this document) and `TODO.md` (linear checklist).
-    *   Ensure `.gitignore` is comprehensive for build artifacts and IDE files.
-    *   Review `AGENTS.md` (if any, none found at root yet) for specific instructions.
+# AudioStretchy Complete Rewrite and Repackaging Plan
 
-2.  **Core Logic Refactoring (`src/audiostretchy/stretch.py`):**
-    *   **Modify `AudioStretch.stretch` method:**
-        *   Ensure this method uses the `TDHSAudioStretch` class (from `src/audiostretchy/interface/tdhs.py`) for the time-stretching process.
-        *   Remove or comment out the current implementation that uses `pedalboard.time_stretch`.
-        *   The method should take audio data (as a NumPy array, float32, shape `(num_channels, num_frames)`) from `self.samples` (which is populated by `pedalboard` via the `open` method).
-        *   Convert the float32 NumPy array to int16 NumPy array as expected by `TDHSAudioStretch`. This includes handling interleaving for stereo audio.
-        *   Pass the appropriate parameters (ratio, frequency limits, flags) to `TDHSAudioStretch`.
-        *   Convert the int16 output from `TDHSAudioStretch` back to float32 NumPy array and update `self.samples`. This includes de-interleaving for stereo.
-    *   **Verify `AudioStretch.open` and `AudioStretch.save`:**
-        *   Confirm these methods exclusively use `pedalboard.io.AudioFile` for all audio I/O operations (WAV, MP3, etc.). This seems mostly in place.
-        *   Ensure they correctly handle file paths and file-like objects.
-    *   **Verify `AudioStretch.resample`:**
-        *   Confirm this method uses `pedalboard.Resample`. This also seems in place.
-    *   **Review `stretch_audio` global function:**
-        *   Ensure it correctly instantiates `AudioStretch` and calls its methods in the correct order (open, stretch, resample, save).
-        *   Update its parameter list to accurately reflect the parameters used by the `TDHSAudioStretch`-based `AudioStretch.stretch` method. Parameters not used by `TDHSAudioStretch` (like pedalboard-specific ones) should be removed or clearly documented if they have a different purpose.
+## Overview
+Complete rewrite and repackaging of AudioStretchy to use git submodules for audio-stretch C library integration, Pedalboard for file I/O, and Hatch for modern Python packaging with cross-platform wheel building.
 
-3.  **C Library Integration and Packaging (`pyproject.toml`, CI):**
-    *   **Confirm Pre-compiled Library Strategy:** Stick with the current approach of pre-compiling the C shared libraries (`.so`, `.dylib`, `.dll`) via GitHub Actions and including them in the source distribution.
-    *   **Verify `pyproject.toml` for Package Data:** Ensure `tool.setuptools.package-data` correctly includes the paths to these compiled libraries from `src/audiostretchy/interface/` subdirectories.
-    *   **Verify `src/audiostretchy/interface/tdhs.py`:**
-        *   Ensure `ctypes` bindings correctly load the platform-specific library.
-        *   Double-check function signatures and data type conversions (e.g., `np.int16` to `ctypes.POINTER(ctypes.c_short)`).
-    *   **Review GitHub Actions Workflow (`.github/workflows/ci.yaml`):**
-        *   Confirm it correctly compiles `vendors/stretch/stretch.c` for all target platforms (Linux, macOS, Windows).
-        *   Ensure it places the compiled artifacts in the correct locations within `src/audiostretchy/interface/` for packaging.
-        *   Confirm the workflow commits these binaries back to the repository if changed.
+## Technical Architecture
 
-4.  **Testing (`tests/test_stretch.py`):**
-    *   **Expand Test Coverage:**
-        *   Write comprehensive tests for the `AudioStretch` class methods (`open`, `save`, `stretch`, `resample`).
-        *   Test with various audio formats (WAV, MP3 at minimum). Use `soundfile` or `pedalboard` to load reference/output files and verify properties (duration, sample rate, channel count, and potentially content similarity for non-stretching operations).
-        *   Test different stretching ratios (e.g., `<1.0`, `1.0`, `>1.0`, and edge cases like `0.25`, `4.0` if `STRETCH_DUAL_FLAG` is used).
-        *   Test `TDHSAudioStretch` parameters: `upper_freq`, `lower_freq`, `fast_detection`, `double_range`.
-        *   Test behavior with mono and stereo files.
-        *   Test resampling functionality thoroughly.
-        *   Test the main `stretch_audio` function as an integration test.
-    *   **Test Silence Handling (`gap_ratio`):**
-        *   If the `gap_ratio` related parameters are intended to be effective, create specific tests with audio files containing clear silent and voiced segments to verify that silence is stretched differently. This might require creating or finding suitable test audio.
-        *   If this feature is not fully implemented on the Python side (i.e., relies only on C library's internal capability without Python pre-segmentation), document this limitation clearly.
-    *   **Test File-like Objects:** Add tests for opening from and saving to `io.BytesIO` objects.
+### Core Components
+1. **Git Submodule Integration**: Use https://github.com/dbry/audio-stretch as a git submodule
+2. **Audio I/O**: Replace existing I/O with Pedalboard library exclusively
+3. **Build System**: Migrate from setuptools to Hatch with cross-platform wheel building
+4. **CI/CD**: GitHub Actions for automated building and publishing
 
-5.  **Build and Publish Workflow:**
-    *   **Verify Wheel Building:** After all changes, ensure `python -m build` (or `uv build`) successfully creates a wheel.
-    *   **Inspect Wheel Contents:** Unzip the generated wheel and verify that the pre-compiled C libraries are included in the correct locations.
-    *   **Test Installation from Wheel:** Install the generated wheel in a clean virtual environment and test the CLI and basic library import/usage.
-    *   **"uv publish":** The goal is that `uv publish` would work. This mainly relies on a standard PEP 517 build and PyPI token configuration, which the existing `pypa/gh-action-pypi-publish` in `ci.yaml` handles for tagged releases.
+### Project Structure
+```
+audiostretchy/
+├── pyproject.toml           # Hatch configuration
+├── src/
+│   └── audiostretchy/
+│       ├── __init__.py
+│       ├── __main__.py      # CLI entry point
+│       ├── core.py          # Main AudioStretch class
+│       └── c_interface/
+│           ├── __init__.py
+│           ├── wrapper.py   # C library ctypes wrapper
+│           └── build.py     # C compilation utilities
+├── audio-stretch/           # Git submodule
+│   ├── stretch.h
+│   ├── stretch.c
+│   └── README.md
+├── scripts/
+│   ├── build_local.py       # Local wheel building
+│   └── compile_c.py         # C library compilation
+├── .github/
+│   └── workflows/
+│       ├── build.yml        # Cross-platform wheel building
+│       └── publish.yml      # PyPI publishing
+└── tests/
+```
 
-6.  **Documentation:**
-    *   Update `README.md` to reflect the refactored architecture, especially clarifying the roles of `pedalboard` (I/O, resampling) and the custom C library (stretching).
-    *   Update any other relevant documentation (e.g., docstrings, API docs if generated).
-    *   Ensure `PLAN.md` and `TODO.md` are accurate and complete.
+## Implementation Phases
 
-7.  **Final Review and Submission:**
-    *   Run all tests and ensure they pass.
-    *   Run linters/formatters.
-    *   Submit the changes with a clear commit message.
+### Phase 1: Infrastructure Setup
+- [ ] Configure git submodule for audio-stretch
+- [ ] Set up Hatch build system configuration
+- [ ] Create basic project structure with src layout
+
+### Phase 2: Core Implementation
+- [ ] Implement Pedalboard-based audio I/O
+- [ ] Create C library compilation system
+- [ ] Develop ctypes wrapper for audio-stretch
+- [ ] Implement main AudioStretch class
+
+### Phase 3: Build System
+- [ ] Create local build scripts for different platforms
+- [ ] Set up GitHub Actions for cross-platform building
+- [ ] Configure automated PyPI publishing
+- [ ] Test wheel building on multiple platforms
+
+### Phase 4: CLI and Testing
+- [ ] Implement CLI interface with Fire
+- [ ] Create comprehensive test suite
+- [ ] Add performance benchmarks
+- [ ] Documentation updates
+
+## Technical Specifications
+
+### Hatch Configuration
+- Use `hatchling` as build backend
+- Configure wheel building with platform-specific compilation
+- Set up proper package data inclusion for compiled libraries
+- Configure development dependencies and optional extras
+
+### C Library Integration
+- Compile stretch.c for multiple platforms (Linux, macOS, Windows)
+- Create platform-specific shared libraries (.so, .dylib, .dll)
+- Use ctypes for Python-C interface
+- Handle different architectures (x86_64, arm64)
+
+### Pedalboard Integration
+- Replace all existing audio I/O with Pedalboard AudioFile
+- Utilize built-in resampling capabilities
+- Support multiple audio formats (WAV, MP3, FLAC, OGG, etc.)
+- Optimize for performance and memory usage
+
+### Cross-Platform Wheel Building
+- Use cibuildwheel for GitHub Actions
+- Support Linux (x86_64, aarch64), macOS (x86_64, arm64), Windows (x86_64)
+- Ensure proper C library compilation for each platform
+- Handle platform-specific dependencies
+
+## Dependencies
+
+### Core Dependencies
+- `pedalboard>=0.8.6` - Audio I/O and effects
+- `numpy>=1.23.0` - Numerical operations
+- `fire>=0.5.0` - CLI interface
+
+### Build Dependencies
+- `hatchling` - Build backend
+- `cibuildwheel` - Cross-platform wheel building
+- Platform-specific C compilers
+
+### Development Dependencies
+- `pytest` - Testing framework
+- `pytest-cov` - Coverage reporting
+- `black` - Code formatting
+- `ruff` - Linting and import sorting
+
+## Success Criteria
+1. Git submodule properly integrated and buildable
+2. Pedalboard handles all audio I/O operations
+3. Hatch successfully builds wheels for all target platforms
+4. GitHub Actions automatically build and publish releases
+5. Local build scripts work on developer machines
+6. All existing functionality preserved with improved performance
+7. Clean, maintainable codebase following modern Python practices

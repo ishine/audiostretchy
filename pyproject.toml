@@ -1,14 +1,11 @@
 [build-system]
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-version_scheme = "no-guess-dev"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "audiostretchy"
-dynamic = ["version"] # Specify that version is dynamic
-description = "AudioStretchy is a Python library and CLI tool that which performs fast, high-quality time-stretching of WAV/MP3 files without changing their pitch. Works well for speech, can time-stretch silence separately. AudioStretchy is a wrapper around the audio-stretch C library by David Bryant."
+dynamic = ["version"]
+description = "AudioStretchy is a Python library and CLI tool for high-quality time-stretching of audio files without changing pitch. Uses David Bryant's audio-stretch C library with Pedalboard for versatile audio I/O."
 readme = "README.md"
 authors = [{name = "Adam Twardoch", email = "adam+github@twardoch.com"}]
 license = "BSD-3-Clause"
@@ -24,59 +21,98 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Multimedia :: Sound/Audio",
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
     "fire>=0.5.0",
-    "numpy>=1.23.0", # Pedalboard uses numpy
-    "pedalboard>=0.8.6", # Main new dependency
-    "importlib-metadata; python_version<'3.8'",
+    "numpy>=1.23.0",
+    "pedalboard>=0.8.6",
 ]
 
 [project.optional-dependencies]
-all = [
-    # pydub and pymp3 are no longer primary dependencies for mp3 handling if pedalboard works
-    # but keeping them for now in case pedalboard has issues or for comparison
-    "pydub>=0.25.1; sys_platform == 'darwin'",
-    "pymp3>=0.1.9; sys_platform == 'win32' or sys_platform == 'linux'",
-    # soxr is also replaced by pedalboard's resampling
-    "soxr>=0.3.5", # Keep for now, might be removed if pedalboard resampling is sufficient
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0", 
+    "ruff>=0.1.0",
+    "build>=0.10.0",
 ]
-testing = [
-    "setuptools",
-    "pytest",
-    "pytest-cov",
-    "soundfile", # For verifying audio file properties in tests
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "soundfile>=0.12.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/twardoch/audiostretchy"
-Documentation = "https://pyscaffold.org/" # Placeholder, update if official docs exist
+Repository = "https://github.com/twardoch/audiostretchy.git"
+Issues = "https://github.com/twardoch/audiostretchy/issues"
 
 [project.scripts]
-audiostretchy = "audiostretchy.__main__:cli"
+audiostretchy = "audiostretchy.__main__:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["tests*"] # Ensure tests are not included as a package
+# Hatch configuration
+[tool.hatch.version]
+source = "vcs"
 
-[tool.setuptools.package-data]
-"*" = ["*.dll", "*.so", "*.dylib"] # For the C library, if kept
-
-[tool.pytest.ini_options]
-addopts = "--cov src/audiostretchy --cov-report term-missing --verbose" # Adjusted path for coverage
-norecursedirs = ["dist", "build", ".tox"]
-testpaths = ["tests"]
-
-[tool.flake8]
-max_line_length = 88
-extend_ignore = ["E203", "W503"] # Black-compatible
-exclude = [
-    ".tox",
-    "build",
-    "dist",
-    ".eggs",
-    "docs/conf.py",
+[tool.hatch.build.targets.wheel]
+packages = ["src/audiostretchy"]
+include = [
+    "src/audiostretchy/**/*.py",
+    "src/audiostretchy/**/*.so",
+    "src/audiostretchy/**/*.dylib", 
+    "src/audiostretchy/**/*.dll",
 ]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/audio-stretch",
+    "/scripts",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE.txt",
+    "AUTHORS.md",
+]
+
+# Development environment
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "build>=0.10.0",
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+    "pytest>=7.0.0", 
+    "pytest-cov>=4.0.0",
+    "soundfile>=0.12.0",
+]
+
+# Testing configuration
+[tool.pytest.ini_options]
+addopts = "--cov=src/audiostretchy --cov-report=term-missing --verbose"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+
+# Linting and formatting
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "YTT", "S", "BLE", "B", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "ISC", "ICN", "G", "INP", "PIE", "T20", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "RUF"]
+ignore = ["E203", "W503", "S101", "PLR0913", "PLR0912", "PLR0915", "C901"]
+
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310", "py311", "py312"]
