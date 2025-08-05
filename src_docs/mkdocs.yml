@@ -1,0 +1,119 @@
+# this_file: src_docs/mkdocs.yml
+
+site_name: AudioStretchy Documentation
+site_description: High-quality time-stretching of audio files without altering their pitch
+site_author: Adam Twardoch
+site_url: https://twardoch.github.io/audiostretchy
+
+repo_name: twardoch/audiostretchy
+repo_url: https://github.com/twardoch/audiostretchy
+edit_uri: edit/main/src_docs/md/
+
+docs_dir: md
+site_dir: ../docs
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - toc.follow
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: twardoch
+      repo: audiostretchy
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: 01-installation.md
+    - Quick Start: 02-quick-start.md
+  - Usage:
+    - Command Line Interface: 03-cli-usage.md
+    - Python API: 04-python-api.md
+  - Technical Details:
+    - How It Works: 05-how-it-works.md
+    - Core Architecture: 06-core-architecture.md
+    - Parameters Reference: 07-parameters-reference.md
+  - Development:
+    - Contributing: 08-contributing.md
+    - API Reference: 09-api-reference.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/twardoch/audiostretchy
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/audiostretchy/
+
+copyright: Copyright &copy; 2023-2024 Adam Twardoch
